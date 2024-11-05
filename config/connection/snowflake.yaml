@@ -1,0 +1,6 @@
+driver: snowflake
+username: my_username
+password: my_password
+host: my_host
+port: 9000
+database: my_database

@@ -1,0 +1,36 @@
+storage:
+  driver: postgres
+  user: my_username
+  password: my_password
+dataset:
+  _target_: core.structs.Schema
+  target:
+    _target_: core.structs.Column
+    name: price
+    type: numerical
+    description: Price of the car
+  features:
+  - name: make
+    type: categorical
+    description: Make of the car
+    _target_: core.structs.Column
+  - name: model
+    type: categorical
+    description: Model of the car
+    _target_: core.structs.Column
+  - name: year
+    type: numerical
+    description: Year of the car
+    _target_: core.structs.Column
+  - name: mileage
+    type: numerical
+    description: Mileage of the car
+    _target_: core.structs.Column
+  - name: fuel_type
+    type: categorical
+    description: Type of fuel used by the car
+    _target_: core.structs.Column
+  - name: engine_power
+    type: numerical
+    description: Power of the engine
+    _target_: core.structs.Column

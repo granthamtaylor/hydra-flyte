@@ -1,0 +1,5 @@
+loss: logloss
+learning_rate: 0.1
+n_estimators: 5
+max_depth: 3
+min_samples_split: 2

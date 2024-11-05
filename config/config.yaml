@@ -1,0 +1,6 @@
+
+_target_: structs.Configuration
+defaults:
+- connection: postgres
+- schema: cars
+- hyperparameters: lg
