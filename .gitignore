@@ -170,3 +170,5 @@ sphinx_source/
 # macOS
 .DS_Store
 .localized
+
+outputs/
