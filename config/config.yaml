@@ -1,5 +1,6 @@
 
-_target_: structs.Configuration
+_target_: __main__.Configuration
+
 defaults:
 - connection: postgres
 - schema: cars

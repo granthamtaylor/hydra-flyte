@@ -1,17 +1,53 @@
 import flytekit as fk
 import hydra
 from omegaconf import DictConfig
+from pydantic.dataclasses import dataclass
 
-from structs import (
-    Configuration, 
-    Connection,
-    Schema,
-    Hyperparameters,
-    Column,
-)
+from union.remote import UnionRemote
 
 
-@fk.task
+image = fk.ImageSpec(packages=[
+    "flytekit==1.14.0b5",
+    "hydra-core",
+    "pydantic"
+])
+
+
+@dataclass
+class Connection:
+    driver: str
+    username: str
+    password: str
+    host: str
+    port: int
+    database: str
+
+@dataclass
+class Column:
+    name: str
+    type: str
+    description: str
+
+@dataclass
+class Schema:
+    target: Column
+    features: list[Column]
+
+@dataclass
+class Hyperparameters:
+    loss: str
+    learning_rate: float
+    n_estimators: int
+    max_depth: int
+    min_samples_split: int
+
+@dataclass
+class Configuration:
+    connection: Connection
+    schema: Schema
+    hyperparameters: Hyperparameters
+
+@fk.task(container_image=image)
 def show(
     connection: Connection,
     schema: Schema,
@@ -21,7 +57,8 @@ def show(
     print(f"Schema: {schema}")
     print(f"Hyperparameters: {hyperparameters}")
 
-@fk.task
+
+@fk.task(container_image=image)
 def iterate(column: Column):
     print(column)
 
@@ -34,10 +71,18 @@ def my_workflow(config: Configuration):
 
 @hydra.main(version_base=None, config_path="../config", config_name="config")
 def app(config: DictConfig) -> None:
+
+    remote = UnionRemote(
+        default_domain="development",
+        default_project="default",
+        interactive_mode_enabled=True,
+    )
     
-    inputs = hydra.utils.instantiate(config, _convert_="object")
+    run = remote.execute(my_workflow, inputs={
+        "config": hydra.utils.instantiate(config, _convert_="object")
+    })
     
-    my_workflow(inputs)
+    print(run.execution_url)
 
 if __name__ == "__main__":
     app()
