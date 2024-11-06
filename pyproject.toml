@@ -1,5 +1,5 @@
 [project]
-name = "my_app"
+name = "flyte_hydra"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"

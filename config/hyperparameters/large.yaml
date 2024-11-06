@@ -1,4 +1,4 @@
-loss: logloss
+loss: squared_error
 learning_rate: 0.001
 n_estimators: 500
 max_depth: 7

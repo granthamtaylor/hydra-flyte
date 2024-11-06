@@ -4,18 +4,23 @@ target:
   description: "Distance the plane can travel"
 
 features:
+
 - name: wing_span
   type: numerical
   description: "Wing span of the plane"
+
 - name: engine_type
   type: categorical
   description: "Type of engine"
+
 - name: engine_power
   type: numerical
   description: "Power of the engine"
+
 - name: engine_weight
   type: numerical
   description: "Weight of the engine"
+  
 - name: engine_fuel
   type: categorical
   description: "Type of fuel used by the engine"

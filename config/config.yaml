@@ -1,7 +1,4 @@
-
-_target_: __main__.Configuration
-
 defaults:
 - connection: postgres
 - schema: cars
-- hyperparameters: lg
+- hyperparameters: medium
