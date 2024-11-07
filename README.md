@@ -117,11 +117,13 @@ defaults:
 - hyperparameters: medium
 ```
 
-However, I may then override the default `schema` like so:
+However, I may then override the default `schema` to use the `planes.yaml` file instead of `cars.yaml` like so:
 
 ```bash
 python main.py schema=planes
 ```
+
+This is merely the tip of the iceberg, however. Hydra supports multi-run executions and much more, such that you may orchestrate multiple concurrent workflow executions.
 
 ## Recursive, Automatic Dataclass Instantiation
 
@@ -153,9 +155,11 @@ In a single like, this `DictConfig` object will be recursively instantiated into
 
 ## Programmatic Workflow Execution
 
-Supposing we have some `flytekit.workflow` named `my_workflow`, we need a way to programmatically execute it with these dataclass configurations:
+Supposing we have some Flyte Workflow named `my_workflow`, we need a way to programmatically execute it with these dataclass configurations:
 
 ```python
+
+import flytekit
 
 @flytekit.workflow
 def my_workflow(
@@ -227,4 +231,17 @@ def my_workflow(
     fk.map_task(show_column)(schema.features)
 ```
 
-With this technique, one may easily use Hydra, Pydantic, and Flyte to manage arbitrarily complex data science projects with ease. Everything is strictly type checked, validated, and cache-efficient. 
+With this technique, one may easily use Hydra, Pydantic, and Flyte to manage arbitrarily complex data science projects with ease. Everything is strictly type checked, validated, and cache-efficient.
+
+## Remote, Multi-Run Workflow Executions
+
+Now that we have our configurations all set up, we can easily sweep through multiple variations of our hyperparameters with ease.
+
+With a single command, we will submit 12 concurrently running workflow executions to our remote cluster:
+
+```
+python main.py --multirun \
+    connection=snowflake,postgres \
+    schema=cars,planes \
+    hyperparameters=large,medium,small
+```
