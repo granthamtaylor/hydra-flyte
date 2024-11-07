@@ -7,11 +7,13 @@ Configurations may also be used to define various preprocessing and feature engi
 Machine learning experimentation best practices dictate that one should _never_ hardcode their configurations, but instead define it elsewhere in a human readable file.
 `yaml` has become the most intuitive solution for this, and `hydra` has become the de-facto implementation for managing complex, nested `yaml` configuration files.
 
-While `hydra` is extremely powerful, it's assumptions around how one uses configurations are actually misplaced in the context of workflow orchestration. In short, `hydra` will create an `DictConfig` construct of hierarchical configurations from your selected files. This is one, large single object. However, in the context of workflow orchestration, this approach is inelegant and inefficient for a couple of reasons.
+While `hydra` is extremely powerful, it's assumptions around how one uses configurations are actually misplaced in the context of workflow orchestration. In short, `hydra` will create an `DictConfig` construct of hierarchical configurations from your selected files. This is one, large single object. However, in the context of workflow orchestration, this approach is inelegant and inefficient for a few reasons.
 
 
 For one, workflow orchestration tools such as Flyte rely upon strict type checking. A `DictConfig` is a `json`-like blob that is not strictly type checked.
+
 Secondly, and quite related to my prior point, a `DictConfig` has no guardrails against invalid values. For instance: I may have a configuration `lr` that defines the learning rate for my model. `hydra` will not know that `lr` needs to be of type `float`, but it also will not check whether `0. < lr < 1.`. In other words, such "bad" configurations will only be realized during _run time_, whereas ideally one should be able to prevent this at _registration time_.
+
 Lastly, and perhaps most importantly, workflow orchestration benefits from minimal task inputs. In other words, any task in an DAG should have the minimal number of inputs in order to ensure optimal cache performance. If one were to naively input the `DictConfig` to every task in the workflow this would result in extremely poor cache performance. Any single change to any configuration item would guarantee a cache miss on subsequent executions.
 
 However, by supporting workflow programmatic execution and first-class `pydantic` dataclasses, Flyte can seamlessly work around these few obstacles to enable arbitrarily complex workflow configuration for local execution, remote execution, and workflow registration while adhering to best practices.
@@ -41,6 +43,7 @@ class Schema:
 Because we are using `pydantic` dataclasses, you may also define arbitrary validation logic for each attribute, including support for `Enum` constructs too:
 
 ```python
+
 from typing import Annotated
 from enum import Enum
 
@@ -73,6 +76,8 @@ class Hyperparameters:
 
 ```
 
+These constructs may be as complex and rigorously validated as required for your use case.
+
 ## Hydra Hierarchical Configurations
 
 These configurations may be arbitrarily nested, as `hydra` recommends, into one single large `Configuration` dataclass that includes every configuration possible.
@@ -100,6 +105,22 @@ Now that we have a strictly typed and validated representation of all configurat
 └── schema
     ├── cars.yaml
     └── planes.yaml
+```
+
+One may select which variation of each configuration group they require by either setting default values in `config.yaml` or by passing in arguments via the command line.
+
+For example, I may select the `postgres` connection, a `medium` model size, and the `cars` schema to be the default values by creating a `config.yaml` file like so:
+```yaml
+defaults:
+- connection: postgres
+- schema: cars
+- hyperparameters: medium
+```
+
+However, I may then override the default `schema` like so:
+
+```bash
+python main.py schema=planes
 ```
 
 ## Recursive, Automatic Dataclass Instantiation
@@ -173,7 +194,7 @@ Upon executing this script, with less than 30 LoC, we can:
 
 ## Attribute Access in Workflow DSL
 
-The `flytekit` DSL is extremely flexible, and works especially well with `dataclass` instances. A developer may choose to utilize "fine-grained" caching by passing attributes of a `dataclass` instance to a task instead of the entire `dataclass`. Such "fine-grained" caching enables better chances of a "cache hit" to significant amounts of money and time.
+The `flytekit` DSL is extremely flexible, and works especially well with `dataclass` instances. A developer may choose to utilize "fine-grained" caching by passing attributes of a `dataclass` instance to a task instead of the entire `dataclass`. Such "fine-grained" caching enables better chances of a "cache hit" to save significant amounts of both money and time.
 
 As such, one may construct a simple workflow that utilizes the attributes of our dataclasses like so:
 
@@ -199,7 +220,7 @@ def my_workflow(
     hyperparameters: Hyperparameters,
 ):
     
-    # use the "learning_rate" attribute of the "hyperparameters" dataclass
+    # use only the "learning_rate" attribute of the "hyperparameters" dataclass
     show_lr(hyperparameters.learning_rate)
 
     # map over the list of "features" in the "schema" dataclass

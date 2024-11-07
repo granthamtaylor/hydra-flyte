@@ -1,5 +1,5 @@
 target:
-- name: distance
+  name: distance
   type: numerical
   description: "Distance the plane can travel"
 
