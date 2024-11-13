@@ -27,6 +27,15 @@ Firstly, a model developer may create arbitrary `pydantic` dataclass constructs 
 from pydantic.dataclasses import dataclass
 
 @dataclass
+class Connection:
+    driver: str
+    username: str
+    password: str
+    host: str
+    port: int
+    database: str
+
+@dataclass
 class Column:
     name: str
     dtype: str
@@ -151,7 +160,7 @@ def app(config: DictConfig) -> None:
     config: Configuration = hydra.utils.instantiate(config, _convert_="object", _target_=Configuration)
 ```
 
-In a single like, this `DictConfig` object will be recursively instantiated into a `Configuration` dataclass instance. All validations and type checks will be performed. Should they fail, they will do so loudly. This is completely, 100% automatic. These dataclasses are the preferred means of managing complex objects in Flyte. 
+In a single line, this `DictConfig` object will be recursively instantiated into a `Configuration` dataclass instance. All validations and type checks will be performed. Should they fail, they will do so loudly. This is completely, 100% automatic. These dataclasses are the preferred means of managing complex objects in Flyte. 
 
 ## Programmatic Workflow Execution
 
@@ -159,14 +168,11 @@ Supposing we have some Flyte Workflow named `my_workflow`, we need a way to prog
 
 ```python
 
-import flytekit
+import flytekit as fk
+from union.remote import UnionRemote
 
-@flytekit.workflow
-def my_workflow(
-    connection: Connection,
-    schema: Schema,
-    hyperparameters: Hyperparameters,
-):
+@fk.workflow
+def my_workflow(config: Configuration):
     ...
 
 @hydra.main(version_base="1.3", config_path="config", config_name="config")
@@ -179,10 +185,11 @@ def app(config: DictConfig) -> None:
     remote = UnionRemote(default_domain="development", default_project="default")
     
     # execute workflow with configurations
-    run = remote.execute(remote.fast_register_workflow(my_workflow), inputs=vars(config))
+    run = remote.execute(remote.fast_register_workflow(my_workflow), inputs={"config": config})
     
     # print execution URL
     print(run.execution_url)
+
 
 if __name__ == "__main__":
     app()
@@ -204,31 +211,36 @@ As such, one may construct a simple workflow that utilizes the attributes of our
 
 ```python
 
-image = flytekit.ImageSpec(packages=["flytekit==1.14.0b5", "hydra-core", "pydantic"])
+# union serverless provides a built-in remote image builder!
+image = fk.ImageSpec(packages=["flytekit==1.14.0b5", "hydra-core", "pydantic"])
 
-@flytekit.task(container_image=image)
+@fk.task(container_image=image)
+def show_config(config: Configuration):
+
+    print(config)
+
+@fk.task(container_image=image)
 def show_lr(lr: float):
 
     print(lr)
 
 
-@flytekit.task(container_image=image)
+@fk.task(container_image=image)
 def show_column(column: Column):
 
     print(column)
 
-@flytekit.workflow
-def my_workflow(
-    connection: Connection,
-    schema: Schema,
-    hyperparameters: Hyperparameters,
-):
+@fk.workflow
+def my_workflow(config: Configuration):
+
+    # show entire configuration
+    show_config(config)
     
     # use only the "learning_rate" attribute of the "hyperparameters" dataclass
-    show_lr(hyperparameters.learning_rate)
+    show_lr(config.hyperparameters.learning_rate)
 
     # map over the list of "features" in the "schema" dataclass
-    fk.map_task(show_column)(schema.features)
+    fk.map_task(show_column)(config.schema.features)
 ```
 
 With this technique, one may easily use Hydra, Pydantic, and Flyte to manage arbitrarily complex data science projects with ease. Everything is strictly type checked, validated, and cache-efficient.
@@ -246,5 +258,11 @@ python main.py --multirun \
     hyperparameters=large,medium,small
 ```
 
-Flyte will manage the caching, even for concurrently running executions, such that should some of these independent workflows require, say, reading the same dataset from the same database, it will "block" redundant executions from duplicating the same work, and instead wait until the outputs of such tasks are available in the cluster's cache. This is yet another awesome bit of synergy among Hydra Pydantic, and Flyte.
+Flyte will manage the caching, even for concurrently running executions, such that should some of these independent workflows require, say, reading the same dataset from the same database, it will "block" redundant executions from duplicating the same work, and instead wait until the outputs of such tasks are available in the cluster's cache. This is yet another awesome bit of synergy among Hydra, Pydantic, and Flyte.
 
+## Union Console Launch Forms Integrate with Dataclasses
+Additionally, Union provides significant improvements over the open source Flyte Console.
+
+One of the most significant improvements is Launch Forms. Launch Forms provide a convenient way to execute workflows from the UI. Launch Forms also provide integration with the dataclass-parameterized workflows, such that one may edit the configurations from previous executions in the UI before submitting new executions.
+
+![Launch Forms](assets/screenshot.png)

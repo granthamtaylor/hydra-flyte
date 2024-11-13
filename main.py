@@ -3,16 +3,9 @@ import hydra
 from omegaconf import DictConfig
 from union.remote import UnionRemote
 
-from flyte_hydra.structs import (
-    Connection,
-    Schema,
-    Hyperparameters,
-    Column,
-    Configuration
-)
+from flyte_hydra.structs import Column, Configuration
 
 image = fk.ImageSpec(packages=["flytekit==1.14.0b5", "hydra-core", "pydantic"])
-
 
 @fk.task(container_image=image)
 def show_lr(lr: float):
@@ -26,15 +19,13 @@ def show_column(column: Column):
     print(column)
 
 @fk.workflow
-def my_workflow(
-    connection: Connection,
-    schema: Schema,
-    hyperparameters: Hyperparameters,
-):
+def my_workflow(config: Configuration):
     
-    show_lr(hyperparameters.learning_rate)
+    # use only the "learning_rate" attribute of the "hyperparameters" dataclass
+    show_lr(config.hyperparameters.learning_rate)
 
-    fk.map_task(show_column)(schema.features)
+    # map over the list of "features" in the "schema" dataclass
+    fk.map_task(show_column)(config.schema.features)
     
 
 @hydra.main(version_base="1.3", config_path="config", config_name="config")
@@ -47,7 +38,7 @@ def app(config: DictConfig) -> None:
     remote = UnionRemote(default_domain="development", default_project="default")
     
     # execute workflow with configurations
-    run = remote.execute(remote.fast_register_workflow(my_workflow), inputs=vars(config))
+    run = remote.execute(remote.fast_register_workflow(my_workflow), inputs={"config": config})
     
     # print execution URL
     print(run.execution_url)
