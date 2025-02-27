@@ -1,11 +1,9 @@
 from typing import Annotated
-from enum import Enum
+from enum import StrEnum
 
-from pydantic.dataclasses import dataclass
-from pydantic import Field, model_validator as validator
+from pydantic import BaseModel, Field, model_validator
 
-@dataclass
-class Connection:
+class Connection(BaseModel):
     driver: str
     username: str
     password: str
@@ -13,33 +11,30 @@ class Connection:
     port: int
     database: str
 
-@dataclass
-class Column:
+class Column(BaseModel):
     name: str
     type: str
     description: str
 
-@dataclass
-class Schema:
+class Structure(BaseModel):
     target: Column
     features: list[Column]
     
-class Loss(Enum):
+class Loss(StrEnum):
 
     SQUARED_ERROR = 'squared_error'
     ABSOLUTE_ERROR = 'absolute_error'
     HUBER = 'huber'
     QUANTILE = 'quantile'
 
-@dataclass
-class Hyperparameters:
+class Hyperparameters(BaseModel):
     loss: Loss
     learning_rate: Annotated[float, Field(gt=0.0, lt=1.0)]
     n_estimators: Annotated[int, Field(ge=1)]
     max_depth: Annotated[int, Field(ge=1)]
     min_samples_split: Annotated[int, Field(ge=1)]
 
-    @validator(mode="after")
+    @model_validator(mode="after")
     def check_complexity(self):
         """Check whether the model is complex enough."""
         
@@ -48,8 +43,7 @@ class Hyperparameters:
         return self
 
 
-@dataclass
-class Configuration:
+class Configuration(BaseModel):
     connection: Connection
-    schema: Schema
+    structure: Structure
     hyperparameters: Hyperparameters

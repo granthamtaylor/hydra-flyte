@@ -1,4 +1,4 @@
 defaults:
 - connection: postgres
-- schema: cars
+- structure: cars
 - hyperparameters: medium
